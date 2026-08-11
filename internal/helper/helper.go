@@ -141,7 +141,7 @@ func GetDevBranch() string {
 	}
 
 	prefix := GetDevBranchPrefix()
-	reDevBranch := regexp.MustCompile(fmt.Sprintf(`^origin/(%s)-.*`, prefix))
+	reDevBranch := regexp.MustCompile(fmt.Sprintf(`^origin/(%s).*`, prefix))
 	for _, branch := range branches {
 		if reDevBranch.MatchString(branch) {
 			devBranch = strings.Replace(branch, "origin/", "", 1)
