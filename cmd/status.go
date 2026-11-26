@@ -11,7 +11,10 @@ import (
 
 func Status() {
 	currentFeatureBranch := helper.GetCurrentFeatureBranch()
-	repoName := helper.GetCurrentRepoName()
+	owner, repoName, err := helper.GetCurrentOwnerAndRepo()
+	if err != nil {
+		log.Fatalf(helper.FormatMessage("Could not determine GitHub owner and repository: %v\n", "error"), err)
+	}
 
 	if currentFeatureBranch == "main" || currentFeatureBranch == "master" || currentFeatureBranch == "test" {
 		log.Fatal(helper.FormatMessage("You are on the main/master or on the test branch. Please switch to a feature branch first.\n", "warning"))
@@ -19,14 +22,8 @@ func Status() {
 
 	ctx, client := helper.Authenticate()
 
-	config, err := helper.ReadConfigFile()
-	if err != nil {
-		log.Fatalf(helper.FormatMessage("Status: Error opening config file: %v\n", "error"), err)
-	}
-
-	githubOrganization := config.GithubOrganization
-	existingOpenPRs, _, err := client.PullRequests.List(ctx, githubOrganization, string(repoName), &github.PullRequestListOptions{
-		Head: fmt.Sprint(currentFeatureBranch),
+	existingOpenPRs, _, err := client.PullRequests.List(ctx, owner, repoName, &github.PullRequestListOptions{
+		Head: owner + ":" + currentFeatureBranch,
 	})
 	if err != nil {
 		log.Fatalf(helper.FormatMessage("Error checking for existing PR: %v\n", "error"), err)
@@ -40,14 +37,14 @@ func Status() {
 		if existingPR.GetTitle() == fmt.Sprint(currentFeatureBranch) {
 			fmt.Printf(helper.FormatMessage("Found existing PR: %v -> %v\n", "info"), existingPR.GetTitle(), existingPR.GetHTMLURL())
 			fmt.Printf(helper.FormatMessage("State of the PR is: %v \n", "info"), existingPR.GetState())
-			reviews, _, err := client.PullRequests.ListReviews(ctx, githubOrganization, string(repoName), *existingPR.Number, &github.ListOptions{})
+			reviews, _, err := client.PullRequests.ListReviews(ctx, owner, repoName, *existingPR.Number, &github.ListOptions{})
 			if err != nil {
 				log.Fatalf(helper.FormatMessage("Error getting reviews for PR: %v\n", "error"), err)
 			}
 			for _, review := range reviews {
 				comment := review.GetBody()
 				if comment == "" {
-					reviewComments, _, err := client.PullRequests.ListReviewComments(ctx, githubOrganization, string(repoName), *existingPR.Number, review.GetID(), &github.ListOptions{})
+					reviewComments, _, err := client.PullRequests.ListReviewComments(ctx, owner, repoName, *existingPR.Number, review.GetID(), &github.ListOptions{})
 					if err != nil {
 						log.Fatalf(helper.FormatMessage("Error getting review comments for PR: %v\n", "error"), err)
 					}

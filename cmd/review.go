@@ -17,26 +17,27 @@ func Preview() {
 		log.Fatal(helper.FormatMessage("You are on the main/master or on the test branch. Please switch to a feature branch first.\n", "warning"))
 	}
 
-	config, err := helper.ReadConfigFile()
-	if err != nil {
+	if _, err := helper.ReadConfigFile(); err != nil {
 		openPRInBrowser()
 		return
 	}
 
-	openPR(config, currentFeatureBranch)
+	openPR(currentFeatureBranch)
 
 }
 
-func openPR(config helper.Config, currentFeatureBranch string) {
-	githubOrganization := config.GithubOrganization
-	repoName := helper.GetCurrentRepoName()
+func openPR(currentFeatureBranch string) {
+	owner, repoName, err := helper.GetCurrentOwnerAndRepo()
+	if err != nil {
+		log.Fatalf(helper.FormatMessage("Could not determine GitHub owner and repository: %v\n", "error"), err)
+	}
 
 	fmt.Printf(helper.FormatMessage("Creating pull request from feature branch %v to main/master\n", "info"), currentFeatureBranch)
 	ctx, client := helper.Authenticate()
 
-	existingOpenPRs, _, err := client.PullRequests.List(ctx, githubOrganization, string(repoName), &github.PullRequestListOptions{
+	existingOpenPRs, _, err := client.PullRequests.List(ctx, owner, repoName, &github.PullRequestListOptions{
 		State: "open",
-		Head:  fmt.Sprint(currentFeatureBranch),
+		Head:  owner + ":" + currentFeatureBranch,
 	})
 	if err != nil {
 		fmt.Print(helper.FormatMessage("No existing PR found, opening a new one.\n", "info"))
@@ -67,7 +68,7 @@ func openPR(config helper.Config, currentFeatureBranch string) {
 			Base:  github.String("main"),
 		}
 
-		pr, _, err := client.PullRequests.Create(ctx, githubOrganization, string(repoName), newPR)
+		pr, _, err := client.PullRequests.Create(ctx, owner, repoName, newPR)
 		if err != nil {
 			log.Fatalf(helper.FormatMessage("Error creating pull request: %v\n", "error"), err)
 		}

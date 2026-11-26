@@ -10,8 +10,7 @@ import (
 )
 
 type Config struct {
-	GithubAccessToken  string `json:"github_access_token"`
-	GithubOrganization string `json:"github_organization"`
+	GithubAccessToken string `json:"github_access_token"`
 }
 
 func login() {
@@ -39,13 +38,8 @@ func login() {
 	token, _ := reader.ReadString('\n')
 	token = strings.TrimSpace(token)
 
-	fmt.Print("Enter your GitHub organization: ")
-	org, _ := reader.ReadString('\n')
-	org = strings.TrimSpace(org)
-
 	config := Config{
-		GithubAccessToken:  token,
-		GithubOrganization: org,
+		GithubAccessToken: token,
 	}
 	file, err := os.Create(configPath)
 	if err != nil {
